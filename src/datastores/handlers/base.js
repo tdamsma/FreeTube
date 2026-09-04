@@ -399,6 +399,24 @@ class SubscriptionCache {
   }
 }
 
+class ChannelPreferences {
+  static find() {
+    return db.channelPreferences.findAsync({})
+  }
+
+  static upsert(channelPreference) {
+    return db.channelPreferences.updateAsync({ _id: channelPreference._id }, channelPreference, { upsert: true })
+  }
+
+  static delete(_id) {
+    return db.channelPreferences.removeAsync({ _id: _id })
+  }
+
+  static deleteAll() {
+    return db.channelPreferences.removeAsync({}, { multi: true })
+  }
+}
+
 function loadDatastores() {
   return Promise.allSettled([
     db.settings.loadDatabaseAsync(),
@@ -407,6 +425,7 @@ function loadDatastores() {
     db.playlists.loadDatabaseAsync(),
     db.searchHistory.loadDatabaseAsync(),
     db.subscriptionCache.loadDatabaseAsync(),
+    db.channelPreferences.loadDatabaseAsync(),
   ])
 }
 
@@ -418,6 +437,7 @@ function compactAllDatastores() {
     db.playlists.compactDatafileAsync(),
     db.searchHistory.compactDatafileAsync(),
     db.subscriptionCache.compactDatafileAsync(),
+    db.channelPreferences.compactDatafileAsync(),
   ])
 }
 
@@ -428,6 +448,7 @@ export {
   Playlists as playlists,
   SearchHistory as searchHistory,
   SubscriptionCache as subscriptionCache,
+  ChannelPreferences as channelPreferences,
 
   loadDatastores,
   compactAllDatastores,

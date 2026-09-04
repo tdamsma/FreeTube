@@ -572,6 +572,25 @@ const customActions = {
         }
       })
 
+      window.ftElectron.handleSyncChannelPreferences((event, data) => {
+        switch (event) {
+          case SyncEvents.GENERAL.UPSERT:
+            commit('upsertChannelPreference', data)
+            break
+
+          case SyncEvents.GENERAL.DELETE:
+            commit('removeChannelPreference', data)
+            break
+
+          case SyncEvents.GENERAL.DELETE_ALL:
+            commit('setChannelPreferences', [])
+            break
+
+          default:
+            console.error('channel preferences: invalid sync event received')
+        }
+      })
+
       window.ftElectron.handleSyncProfiles((event, data) => {
         switch (event) {
           case SyncEvents.GENERAL.CREATE:
