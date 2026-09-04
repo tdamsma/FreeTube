@@ -187,6 +187,7 @@ onMounted(async () => {
     store.dispatch('grabAllPlaylists')
     store.dispatch('grabAllSubscriptions')
     store.dispatch('grabSearchHistoryEntries')
+    store.dispatch('grabChannelPreferences')
 
     if (process.env.IS_ELECTRON) {
       store.dispatch('setupListenersToSyncWindows')

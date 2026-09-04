@@ -224,6 +224,10 @@ export default {
     return ipcRenderer.invoke(IpcChannels.DB_SEARCH_HISTORY, data ? { action, data } : { action })
   },
 
+  dbChannelPreferences: (action, data) => {
+    return ipcRenderer.invoke(IpcChannels.DB_CHANNEL_PREFERENCES, data ? { action, data } : { action })
+  },
+
   /**
    * @param {number} action
    * @param {any} [data]
@@ -294,6 +298,15 @@ export default {
    */
   handleSyncSearchHistory: (handler) => {
     ipcRenderer.on(IpcChannels.SYNC_SEARCH_HISTORY, (_, { event, data }) => {
+      handler(event, data)
+    })
+  },
+
+  /**
+   * @param {(event: number, data: any) => void} handler
+   */
+  handleSyncChannelPreferences: (handler) => {
+    ipcRenderer.on(IpcChannels.SYNC_CHANNEL_PREFERENCES, (_, { event, data }) => {
       handler(event, data)
     })
   },

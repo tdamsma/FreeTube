@@ -2061,6 +2061,57 @@ function runApp() {
   })
 
   // *********** //
+
+  // ****************** //
+  // Channel Preferences
+  ipcMain.handle(IpcChannels.DB_CHANNEL_PREFERENCES, async (event, { action, data }) => {
+    if (!isFreeTubeUrl(event.senderFrame.url)) {
+      return
+    }
+
+    try {
+      switch (action) {
+        case DBActions.GENERAL.FIND:
+          return await baseHandlers.channelPreferences.find()
+
+        case DBActions.GENERAL.UPSERT:
+          await baseHandlers.channelPreferences.upsert(data)
+          syncOtherWindows(
+            IpcChannels.SYNC_CHANNEL_PREFERENCES,
+            event,
+            { event: SyncEvents.GENERAL.UPSERT, data }
+          )
+          return null
+
+        case DBActions.GENERAL.DELETE:
+          await baseHandlers.channelPreferences.delete(data)
+          syncOtherWindows(
+            IpcChannels.SYNC_CHANNEL_PREFERENCES,
+            event,
+            { event: SyncEvents.GENERAL.DELETE, data }
+          )
+          return null
+
+        case DBActions.GENERAL.DELETE_ALL:
+          await baseHandlers.channelPreferences.deleteAll()
+          syncOtherWindows(
+            IpcChannels.SYNC_CHANNEL_PREFERENCES,
+            event,
+            { event: SyncEvents.GENERAL.DELETE_ALL }
+          )
+          return null
+
+        default:
+          // eslint-disable-next-line no-throw-literal
+          throw 'invalid channel preferences db action'
+      }
+    } catch (err) {
+      if (typeof err === 'string') throw err
+      else throw err.toString()
+    }
+  })
+
+  // *********** //
   // Profiles
   ipcMain.handle(IpcChannels.DB_SUBSCRIPTION_CACHE, async (event, { action, data }) => {
     if (!isFreeTubeUrl(event.senderFrame.url)) {
