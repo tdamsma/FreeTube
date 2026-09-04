@@ -9,6 +9,7 @@ const RECENT_VIDEOS_TO_TRACK = 5
 /**
  * @typedef {object} ChannelPreference
  * @property {string} _id the channel's ID
+ * @property {string} [name] the channel's name, only stored for remembered speeds so they can be listed in the settings
  * @property {number} [playbackRate] the remembered playback speed for this channel
  * @property {[videoId: string, playbackRate: number][]} [recentPlaybackRates] used to detect repeated speed changes
  * @property {number} [suggestionCount] how often the user has been offered to remember the playback speed
@@ -20,6 +21,13 @@ const state = {
 }
 
 const getters = {
+  /** @returns {ChannelPreference[]} */
+  getRememberedChannelPlaybackRates: (state) => {
+    return state.channelPreferences
+      .filter(preference => preference.playbackRate !== undefined)
+      .sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''))
+  },
+
   /** @returns {(channelId: string) => ChannelPreference|undefined} */
   getChannelPreferenceById: (state) => (channelId) => {
     return state.channelPreferences.find(preference => preference._id === channelId)
@@ -52,10 +60,35 @@ const actions = {
     }
   },
 
+  /**
+   * Remembers a fixed playback speed for a channel, discarding any learning data collected for it.
+   * @param {any} context
+   * @param {{ channelId: string, channelName: string, playbackRate: number }} payload
+   */
+  async pinChannelPlaybackRate({ commit }, { channelId, channelName, playbackRate }) {
+    const channelPreference = { _id: channelId, name: channelName, playbackRate }
+
+    try {
+      await DBChannelPreferencesHandlers.upsert(channelPreference)
+      commit('upsertChannelPreference', channelPreference)
+    } catch (errMessage) {
+      console.error(errMessage)
+    }
+  },
+
   async removeChannelPreference({ commit }, channelId) {
     try {
       await DBChannelPreferencesHandlers.delete(channelId)
       commit('removeChannelPreference', channelId)
+    } catch (errMessage) {
+      console.error(errMessage)
+    }
+  },
+
+  async removeAllChannelPreferences({ commit }) {
+    try {
+      await DBChannelPreferencesHandlers.deleteAll()
+      commit('setChannelPreferences', [])
     } catch (errMessage) {
       console.error(errMessage)
     }

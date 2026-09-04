@@ -176,6 +176,7 @@ export default defineComponent({
       /** @type {Date|null} */
       streamingDataExpiryDate: null,
       currentPlaybackRate: null,
+      playbackRateTrackingTimeout: null,
     }
   },
   computed: {
@@ -413,6 +414,7 @@ export default defineComponent({
       this.channelName = ''
       this.channelThumbnail = ''
       this.channelId = ''
+      clearTimeout(this.playbackRateTrackingTimeout)
       this.channelSubscriptionCountText = ''
       this.videoPublished = 0
       this.premiereDate = undefined
@@ -1972,34 +1974,36 @@ export default defineComponent({
 
       this.currentPlaybackRate = newRate
 
+      clearTimeout(this.playbackRateTrackingTimeout)
+
       if (!this.channelId) {
         return
       }
 
-      const channelId = this.channelId
-      const channelName = this.channelName
+      const { channelId, channelName, videoId } = this
 
-      this.trackChannelPlaybackRate({
-        channelId,
-        videoId: this.videoId,
-        playbackRate: newRate,
-        defaultPlaybackRate: this.$store.getters.getDefaultPlayback
-      }).then((suggestedRate) => {
-        if (suggestedRate === null) {
-          return
+      // only count a speed once the user has stuck with it for a bit, so scrolling through speeds doesn't count every step
+      this.playbackRateTrackingTimeout = setTimeout(async () => {
+        const suggestedRate = await this.trackChannelPlaybackRate({
+          channelId,
+          videoId,
+          playbackRate: newRate,
+          defaultPlaybackRate: this.$store.getters.getDefaultPlayback
+        })
+
+        if (suggestedRate !== null) {
+          showToast(
+            this.t('Video.Player.Always play channel at speed', { channel: channelName, rate: suggestedRate }),
+            10000,
+            () => this.pinChannelPlaybackRate({ channelId, channelName, playbackRate: suggestedRate })
+          )
         }
-
-        showToast(
-          this.t('Video.Player.Always play channel at speed', { channel: channelName, rate: suggestedRate }),
-          10000,
-          () => this.updateChannelPreference({ channelId, preferences: { playbackRate: suggestedRate } })
-        )
-      })
+      }, 5000)
     },
 
     toggleChannelPlaybackRate(currentRate) {
       if (this.channelPlaybackRate === null) {
-        this.updateChannelPreference({ channelId: this.channelId, preferences: { playbackRate: currentRate } })
+        this.pinChannelPlaybackRate({ channelId: this.channelId, channelName: this.channelName, playbackRate: currentRate })
       } else {
         this.removeChannelPreference(this.channelId)
       }
@@ -2036,7 +2040,7 @@ export default defineComponent({
 
     ...mapActions([
       'trackChannelPlaybackRate',
-      'updateChannelPreference',
+      'pinChannelPlaybackRate',
       'removeChannelPreference',
       'updateHistory',
       'updateWatchProgress',

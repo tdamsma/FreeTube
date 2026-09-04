@@ -465,6 +465,9 @@ Settings:
     Default Playback Rate: Default Playback Rate
     Max Video Playback Rate: Max Video Playback Rate
     Video Playback Rate Interval: Video Playback Rate Interval
+    Remembered Channel Playback Speeds: Remembered Channel Playback Speeds
+    Forget: Forget
+    Forget All Remembered Speeds: Forget All Remembered Speeds
     Default Video Format:
       Default Video Format: Default Video Format
       Dash Formats: DASH Formats
