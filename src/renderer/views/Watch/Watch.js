@@ -179,6 +179,9 @@ export default defineComponent({
     }
   },
   computed: {
+    channelPlaybackRate: function () {
+      return this.$store.getters.getChannelPreferenceById(this.channelId)?.playbackRate ?? null
+    },
     historyEntry: function () {
       return this.$store.getters.getHistoryCacheById[this.videoId]
     },
@@ -1962,7 +1965,44 @@ export default defineComponent({
     },
 
     updatePlaybackRate(newRate) {
+      // a remembered channel speed shouldn't carry over to videos from other channels
+      if (this.channelPlaybackRate !== null) {
+        return
+      }
+
       this.currentPlaybackRate = newRate
+
+      if (!this.channelId) {
+        return
+      }
+
+      const channelId = this.channelId
+      const channelName = this.channelName
+
+      this.trackChannelPlaybackRate({
+        channelId,
+        videoId: this.videoId,
+        playbackRate: newRate,
+        defaultPlaybackRate: this.$store.getters.getDefaultPlayback
+      }).then((suggestedRate) => {
+        if (suggestedRate === null) {
+          return
+        }
+
+        showToast(
+          this.t('Video.Player.Always play channel at speed', { channel: channelName, rate: suggestedRate }),
+          10000,
+          () => this.updateChannelPreference({ channelId, preferences: { playbackRate: suggestedRate } })
+        )
+      })
+    },
+
+    toggleChannelPlaybackRate(currentRate) {
+      if (this.channelPlaybackRate === null) {
+        this.updateChannelPreference({ channelId: this.channelId, preferences: { playbackRate: currentRate } })
+      } else {
+        this.removeChannelPreference(this.channelId)
+      }
     },
 
     destroyPlayer: async function() {
@@ -1995,6 +2035,9 @@ export default defineComponent({
     },
 
     ...mapActions([
+      'trackChannelPlaybackRate',
+      'updateChannelPreference',
+      'removeChannelPreference',
       'updateHistory',
       'updateWatchProgress',
       'updateLastViewedPlaylist',

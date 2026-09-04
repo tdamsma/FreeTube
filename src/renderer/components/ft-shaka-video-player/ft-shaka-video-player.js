@@ -11,7 +11,7 @@ import { ScreenshotButton } from './player-components/ScreenshotButton'
 import { StatsButton } from './player-components/StatsButton'
 import { TheatreModeButton } from './player-components/TheatreModeButton'
 import { AutoplayToggle } from './player-components/AutoplayToggle'
-import { ChannelPreferencesToggle } from './player-components/ChannelPreferencesToggle'
+import { ChannelPlaybackRateToggle } from './player-components/ChannelPlaybackRateToggle'
 import { SkipButton } from './player-components/SkipButton'
 import {
   deduplicateAudioTracks,
@@ -120,6 +120,10 @@ export default defineComponent({
       type: String,
       default: ''
     },
+    channelPlaybackRate: {
+      type: Number,
+      default: null
+    },
     title: {
       type: String,
       default: ''
@@ -181,6 +185,7 @@ export default defineComponent({
     'toggle-autoplay',
     'toggle-theatre-mode',
     'playback-rate-updated',
+    'toggle-channel-playback-rate',
     'skip-to-next',
     'skip-to-prev',
     'player-reload-requested',
@@ -223,20 +228,7 @@ export default defineComponent({
     /** @type {number|null} */
     let restoreCaptionIndex = null
 
-    /** The saved preferences for this video's channel, if the user opted in to remembering them. */
-    const savedChannelPreference = props.channelId ? store.getters.getChannelPreferenceById(props.channelId) : undefined
-
-    const rememberChannelPreferences = ref(savedChannelPreference != null)
-
-    if (savedChannelPreference?.captionLanguage !== undefined) {
-      if (savedChannelPreference.captionLanguage !== null) {
-        const index = props.captions.findIndex(caption => caption.language === savedChannelPreference.captionLanguage)
-
-        if (index !== -1) {
-          restoreCaptionIndex = index
-        }
-      }
-    } else if (store.getters.getEnableSubtitlesByDefault && props.captions.length > 0) {
+    if (store.getters.getEnableSubtitlesByDefault && props.captions.length > 0) {
       restoreCaptionIndex = 0
     }
 
@@ -845,7 +837,7 @@ export default defineComponent({
           'chapter',
           'loop',
           'ft_screenshot',
-          'ft_channel_preferences',
+          'ft_channel_playback_rate',
           'picture_in_picture',
           'ft_full_window',
           'recenter_vr',
@@ -873,7 +865,7 @@ export default defineComponent({
           props.format === 'legacy' ? 'ft_legacy_quality' : 'quality',
           'chapter',
           'loop',
-          'ft_channel_preferences',
+          'ft_channel_playback_rate',
           'recenter_vr',
           'toggle_stereoscopic',
         )
@@ -916,7 +908,7 @@ export default defineComponent({
       }
 
       if (!props.channelId) {
-        removeFromArrayIfExists(uiConfig.overflowMenuButtons, 'ft_channel_preferences')
+        removeFromArrayIfExists(uiConfig.overflowMenuButtons, 'ft_channel_playback_rate')
       }
 
       return uiConfig
@@ -1232,19 +1224,6 @@ export default defineComponent({
       }
     }
 
-    /**
-     * Persists the given playback settings for this video's channel,
-     * but only if the user enabled remembering them for it.
-     * @param {{ playbackRate?: number, volume?: number, muted?: boolean, captionLanguage?: string|null }} preferences
-     */
-    function saveChannelPreferences(preferences) {
-      if (!rememberChannelPreferences.value || !props.channelId) {
-        return
-      }
-
-      store.dispatch('updateChannelPreference', { channelId: props.channelId, preferences })
-    }
-
     function updateVolume() {
       const video_ = video.value
       // https://docs.videojs.com/html5#volume
@@ -1266,8 +1245,6 @@ export default defineComponent({
       if (showStats.value) {
         stats.volume = (video_.volume * 100).toFixed(1)
       }
-
-      saveChannelPreferences({ volume: video_.volume, muted: video_.muted })
     }
 
     function handleTimeupdate() {
@@ -1868,40 +1845,26 @@ export default defineComponent({
       shakaOverflowMenu.registerElement('ft_autoplay_toggle', new AutoplayToggleFactory())
     }
 
-    function registerChannelPreferencesToggle() {
-      events.addEventListener('toggleChannelPreferences', (/** @type {CustomEvent} */ event) => {
-        rememberChannelPreferences.value = event.detail
+    function registerChannelPlaybackRateToggle() {
+      events.addEventListener('toggleChannelPlaybackRate', () => {
+        emit('toggle-channel-playback-rate', player.getPlaybackRate())
+      })
 
-        if (event.detail) {
-          const activeTrack = player.getTextTracks().find(track => track.active)
-
-          store.dispatch('updateChannelPreference', {
-            channelId: props.channelId,
-            preferences: {
-              playbackRate: player.getPlaybackRate(),
-              volume: video.value.volume,
-              muted: video.value.muted,
-              captionLanguage: activeTrack && player.isTextTrackVisible() ? activeTrack.language : null
-            }
-          })
-        } else {
-          store.dispatch('removeChannelPreference', props.channelId)
-        }
-
-        events.dispatchEvent(new CustomEvent('setChannelPreferences', { detail: event.detail }))
+      watch(() => props.channelPlaybackRate, (newValue) => {
+        events.dispatchEvent(new CustomEvent('setChannelPlaybackRate', { detail: newValue }))
       })
 
       /**
        * @implements {shaka.extern.IUIElement.Factory}
        */
-      class ChannelPreferencesToggleFactory {
+      class ChannelPlaybackRateToggleFactory {
         create(rootElement, controls) {
-          return new ChannelPreferencesToggle(rememberChannelPreferences.value, events, rootElement, controls)
+          return new ChannelPlaybackRateToggle(props.channelPlaybackRate, events, rootElement, controls)
         }
       }
 
-      shakaControls.registerElement('ft_channel_preferences', new ChannelPreferencesToggleFactory())
-      shakaOverflowMenu.registerElement('ft_channel_preferences', new ChannelPreferencesToggleFactory())
+      shakaControls.registerElement('ft_channel_playback_rate', new ChannelPlaybackRateToggleFactory())
+      shakaOverflowMenu.registerElement('ft_channel_playback_rate', new ChannelPlaybackRateToggleFactory())
     }
 
     function registerTheatreModeButton() {
@@ -2072,8 +2035,8 @@ export default defineComponent({
       shakaControls.registerElement('ft_autoplay_toggle', null)
       shakaOverflowMenu.registerElement('ft_autoplay_toggle', null)
 
-      shakaControls.registerElement('ft_channel_preferences', null)
-      shakaOverflowMenu.registerElement('ft_channel_preferences', null)
+      shakaControls.registerElement('ft_channel_playback_rate', null)
+      shakaOverflowMenu.registerElement('ft_channel_playback_rate', null)
 
       shakaControls.registerElement('ft_theatre_mode', null)
       shakaOverflowMenu.registerElement('ft_theatre_mode', null)
@@ -2821,15 +2784,6 @@ export default defineComponent({
         videoElement.muted = (muted === 'true')
       }
 
-      // the channel's remembered volume takes precedence over the volume carried over from the previous video
-      if (savedChannelPreference?.volume !== undefined) {
-        videoElement.volume = savedChannelPreference.volume
-      }
-
-      if (savedChannelPreference?.muted !== undefined) {
-        videoElement.muted = savedChannelPreference.muted
-      }
-
       const localPlayer = new shaka.Player()
 
       ui = new shaka.ui.Overlay(
@@ -2843,7 +2797,7 @@ export default defineComponent({
       // otherwise it uses the browsers native captions which get displayed underneath the UI controls
       await localPlayer.attach(videoElement)
 
-      videoElement.playbackRate = savedChannelPreference?.playbackRate ?? props.currentPlaybackRate
+      videoElement.playbackRate = props.currentPlaybackRate
       videoElement.defaultPlaybackRate = defaultPlaybackRate.value
 
       // check if the component is already getting destroyed
@@ -2881,7 +2835,7 @@ export default defineComponent({
       registerScreenshotButton()
       registerAudioTrackSelection()
       registerAutoplayToggle()
-      registerChannelPreferencesToggle()
+      registerChannelPlaybackRateToggle()
 
       registerTheatreModeButton()
       registerFullWindowButton()
@@ -2942,19 +2896,7 @@ export default defineComponent({
 
       player?.addEventListener('ratechange', () => {
         emit('playback-rate-updated', player.getPlaybackRate())
-        saveChannelPreferences({ playbackRate: player.getPlaybackRate() })
       })
-
-      const saveCaptionPreference = () => {
-        const activeTrack = player.getTextTracks().find(track => track.active)
-
-        saveChannelPreferences({
-          captionLanguage: activeTrack && player.isTextTrackVisible() ? activeTrack.language : null
-        })
-      }
-
-      player?.addEventListener('textchanged', saveCaptionPreference)
-      player?.addEventListener('texttrackvisibility', saveCaptionPreference)
     })
     onUnmounted(() => {
       initLoadWaitTimeToastAC.abort()
@@ -3140,6 +3082,10 @@ export default defineComponent({
 
       if (props.chapters.length > 0) {
         createChapterMarkers()
+      }
+
+      if (props.channelPlaybackRate !== null) {
+        showValueChange(`${props.channelPlaybackRate}x`)
       }
 
       if (startInFullscreen && process.env.IS_ELECTRON) {

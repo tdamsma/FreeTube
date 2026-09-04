@@ -940,9 +940,10 @@ Video:
     Audio Tracks: Audio Tracks
     Autoplay is off: Autoplay is off
     Autoplay is on: Autoplay is on
-    Remember Settings For This Channel: Remember Settings For This Channel
-    Settings are being remembered for this channel: Settings are being remembered for this channel
-    Settings are not being remembered for this channel: Settings are not being remembered for this channel
+    Remember Playback Speed For This Channel: Remember Playback Speed For This Channel
+    Playback speed is remembered for this channel: Playback speed is remembered for this channel
+    Playback speed is not remembered for this channel: Playback speed is not remembered for this channel
+    Always play channel at speed: 'Always play {channel} at {rate}x? Click here to remember it.'
     Theatre Mode: Theater Mode
     Exit Theatre Mode: Exit Theater Mode
     Full Window: Full Window
