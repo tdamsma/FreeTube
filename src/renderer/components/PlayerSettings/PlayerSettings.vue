@@ -181,7 +181,7 @@
           <router-link :to="`/channel/${_id}`">
             {{ name || _id }}
           </router-link>
-          <span>{{ playbackRate }}x</span>
+          <span>{{ `${playbackRate}x` }}</span>
           <FtButton
             :label="t('Settings.Player Settings.Forget')"
             text-color="var(--text-with-main-color)"
