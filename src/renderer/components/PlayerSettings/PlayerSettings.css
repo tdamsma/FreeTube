@@ -18,3 +18,23 @@
   flex-grow: 1;
   margin-block-start: 10px;
 }
+
+.rememberedSpeedsTitle {
+  text-align: center;
+}
+
+.rememberedSpeeds {
+  list-style: none;
+  padding: 0;
+  margin-block: 0;
+  margin-inline: auto;
+  max-inline-size: 600px;
+}
+
+.rememberedSpeed {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding-block: 4px;
+}

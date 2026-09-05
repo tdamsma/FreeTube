@@ -11,6 +11,7 @@ import { ScreenshotButton } from './player-components/ScreenshotButton'
 import { StatsButton } from './player-components/StatsButton'
 import { TheatreModeButton } from './player-components/TheatreModeButton'
 import { AutoplayToggle } from './player-components/AutoplayToggle'
+import { ChannelPlaybackRateToggle } from './player-components/ChannelPlaybackRateToggle'
 import { SkipButton } from './player-components/SkipButton'
 import {
   deduplicateAudioTracks,
@@ -115,6 +116,14 @@ export default defineComponent({
       type: String,
       default: ''
     },
+    channelId: {
+      type: String,
+      default: ''
+    },
+    channelPlaybackRate: {
+      type: Number,
+      default: null
+    },
     title: {
       type: String,
       default: ''
@@ -176,6 +185,7 @@ export default defineComponent({
     'toggle-autoplay',
     'toggle-theatre-mode',
     'playback-rate-updated',
+    'toggle-channel-playback-rate',
     'skip-to-next',
     'skip-to-prev',
     'player-reload-requested',
@@ -827,6 +837,7 @@ export default defineComponent({
           'chapter',
           'loop',
           'ft_screenshot',
+          'ft_channel_playback_rate',
           'picture_in_picture',
           'ft_full_window',
           'recenter_vr',
@@ -854,6 +865,7 @@ export default defineComponent({
           props.format === 'legacy' ? 'ft_legacy_quality' : 'quality',
           'chapter',
           'loop',
+          'ft_channel_playback_rate',
           'recenter_vr',
           'toggle_stereoscopic',
         )
@@ -893,6 +905,10 @@ export default defineComponent({
 
       if (props.chapters.length === 0) {
         removeFromArrayIfExists(uiConfig.overflowMenuButtons, 'chapter')
+      }
+
+      if (!props.channelId) {
+        removeFromArrayIfExists(uiConfig.overflowMenuButtons, 'ft_channel_playback_rate')
       }
 
       return uiConfig
@@ -1829,6 +1845,28 @@ export default defineComponent({
       shakaOverflowMenu.registerElement('ft_autoplay_toggle', new AutoplayToggleFactory())
     }
 
+    function registerChannelPlaybackRateToggle() {
+      events.addEventListener('toggleChannelPlaybackRate', () => {
+        emit('toggle-channel-playback-rate', player.getPlaybackRate())
+      })
+
+      watch(() => props.channelPlaybackRate, (newValue) => {
+        events.dispatchEvent(new CustomEvent('setChannelPlaybackRate', { detail: newValue }))
+      })
+
+      /**
+       * @implements {shaka.extern.IUIElement.Factory}
+       */
+      class ChannelPlaybackRateToggleFactory {
+        create(rootElement, controls) {
+          return new ChannelPlaybackRateToggle(props.channelPlaybackRate, events, rootElement, controls)
+        }
+      }
+
+      shakaControls.registerElement('ft_channel_playback_rate', new ChannelPlaybackRateToggleFactory())
+      shakaOverflowMenu.registerElement('ft_channel_playback_rate', new ChannelPlaybackRateToggleFactory())
+    }
+
     function registerTheatreModeButton() {
       events.addEventListener('toggleTheatreMode', () => {
         emit('toggle-theatre-mode')
@@ -1996,6 +2034,9 @@ export default defineComponent({
 
       shakaControls.registerElement('ft_autoplay_toggle', null)
       shakaOverflowMenu.registerElement('ft_autoplay_toggle', null)
+
+      shakaControls.registerElement('ft_channel_playback_rate', null)
+      shakaOverflowMenu.registerElement('ft_channel_playback_rate', null)
 
       shakaControls.registerElement('ft_theatre_mode', null)
       shakaOverflowMenu.registerElement('ft_theatre_mode', null)
@@ -2794,6 +2835,7 @@ export default defineComponent({
       registerScreenshotButton()
       registerAudioTrackSelection()
       registerAutoplayToggle()
+      registerChannelPlaybackRateToggle()
 
       registerTheatreModeButton()
       registerFullWindowButton()
@@ -3040,6 +3082,10 @@ export default defineComponent({
 
       if (props.chapters.length > 0) {
         createChapterMarkers()
+      }
+
+      if (props.channelPlaybackRate !== null) {
+        showValueChange(`${props.channelPlaybackRate}x`)
       }
 
       if (startInFullscreen && process.env.IS_ELECTRON) {

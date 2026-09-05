@@ -176,9 +176,13 @@ export default defineComponent({
       /** @type {Date|null} */
       streamingDataExpiryDate: null,
       currentPlaybackRate: null,
+      playbackRateTrackingTimeout: null,
     }
   },
   computed: {
+    channelPlaybackRate: function () {
+      return this.$store.getters.getChannelPreferenceById(this.channelId)?.playbackRate ?? null
+    },
     historyEntry: function () {
       return this.$store.getters.getHistoryCacheById[this.videoId]
     },
@@ -410,6 +414,7 @@ export default defineComponent({
       this.channelName = ''
       this.channelThumbnail = ''
       this.channelId = ''
+      clearTimeout(this.playbackRateTrackingTimeout)
       this.channelSubscriptionCountText = ''
       this.videoPublished = 0
       this.premiereDate = undefined
@@ -1962,7 +1967,46 @@ export default defineComponent({
     },
 
     updatePlaybackRate(newRate) {
+      // a remembered channel speed shouldn't carry over to videos from other channels
+      if (this.channelPlaybackRate !== null) {
+        return
+      }
+
       this.currentPlaybackRate = newRate
+
+      clearTimeout(this.playbackRateTrackingTimeout)
+
+      if (!this.channelId) {
+        return
+      }
+
+      const { channelId, channelName, videoId } = this
+
+      // only count a speed once the user has stuck with it for a bit, so scrolling through speeds doesn't count every step
+      this.playbackRateTrackingTimeout = setTimeout(async () => {
+        const suggestedRate = await this.trackChannelPlaybackRate({
+          channelId,
+          videoId,
+          playbackRate: newRate,
+          defaultPlaybackRate: this.$store.getters.getDefaultPlayback
+        })
+
+        if (suggestedRate !== null) {
+          showToast(
+            this.t('Video.Player.Always play channel at speed', { channel: channelName, rate: suggestedRate }),
+            10000,
+            () => this.pinChannelPlaybackRate({ channelId, channelName, playbackRate: suggestedRate })
+          )
+        }
+      }, 5000)
+    },
+
+    toggleChannelPlaybackRate(currentRate) {
+      if (this.channelPlaybackRate === null) {
+        this.pinChannelPlaybackRate({ channelId: this.channelId, channelName: this.channelName, playbackRate: currentRate })
+      } else {
+        this.removeChannelPreference(this.channelId)
+      }
     },
 
     destroyPlayer: async function() {
@@ -1995,6 +2039,9 @@ export default defineComponent({
     },
 
     ...mapActions([
+      'trackChannelPlaybackRate',
+      'pinChannelPlaybackRate',
+      'removeChannelPreference',
       'updateHistory',
       'updateWatchProgress',
       'updateLastViewedPlaylist',

@@ -465,6 +465,9 @@ Settings:
     Default Playback Rate: Default Playback Rate
     Max Video Playback Rate: Max Video Playback Rate
     Video Playback Rate Interval: Video Playback Rate Interval
+    Remembered Channel Playback Speeds: Remembered Channel Playback Speeds
+    Forget: Forget
+    Forget All Remembered Speeds: Forget All Remembered Speeds
     Default Video Format:
       Default Video Format: Default Video Format
       Dash Formats: DASH Formats
@@ -940,6 +943,10 @@ Video:
     Audio Tracks: Audio Tracks
     Autoplay is off: Autoplay is off
     Autoplay is on: Autoplay is on
+    Remember Playback Speed For This Channel: Remember Playback Speed For This Channel
+    Playback speed is remembered for this channel: Playback speed is remembered for this channel
+    Playback speed is not remembered for this channel: Playback speed is not remembered for this channel
+    Always play channel at speed: 'Always play {channel} at {rate}x? Click here to remember it.'
     Theatre Mode: Theater Mode
     Exit Theatre Mode: Exit Theater Mode
     Full Window: Full Window

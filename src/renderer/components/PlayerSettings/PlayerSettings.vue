@@ -167,6 +167,38 @@
         @change="updateMaxVideoPlaybackRate"
       />
     </FtFlexBox>
+    <template v-if="rememberedChannelPlaybackRates.length > 0">
+      <br>
+      <h4 class="rememberedSpeedsTitle">
+        {{ t('Settings.Player Settings.Remembered Channel Playback Speeds') }}
+      </h4>
+      <ul class="rememberedSpeeds">
+        <li
+          v-for="{ _id, name, playbackRate } in rememberedChannelPlaybackRates"
+          :key="_id"
+          class="rememberedSpeed"
+        >
+          <router-link :to="`/channel/${_id}`">
+            {{ name || _id }}
+          </router-link>
+          <span>{{ `${playbackRate}x` }}</span>
+          <FtButton
+            :label="t('Settings.Player Settings.Forget')"
+            text-color="var(--text-with-main-color)"
+            background-color="var(--primary-color)"
+            @click="store.dispatch('removeChannelPreference', _id)"
+          />
+        </li>
+      </ul>
+      <FtFlexBox>
+        <FtButton
+          :label="t('Settings.Player Settings.Forget All Remembered Speeds')"
+          text-color="var(--destructive-text-color)"
+          background-color="var(--destructive-color)"
+          @click="store.dispatch('removeAllChannelPreferences')"
+        />
+      </FtFlexBox>
+    </template>
     <br>
     <FtFlexBox>
       <FtToggleSwitch
@@ -578,6 +610,8 @@ function updateDefaultPlayback(value) {
 
 /** @type {import('vue').ComputedRef<number>} */
 const maxVideoPlaybackRate = computed(() => store.getters.getMaxVideoPlaybackRate)
+
+const rememberedChannelPlaybackRates = computed(() => store.getters.getRememberedChannelPlaybackRates)
 
 /**
  * @param {number} value

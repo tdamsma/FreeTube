@@ -209,6 +209,24 @@ class SubscriptionCache {
   }
 }
 
+class ChannelPreferences {
+  static find() {
+    return window.ftElectron.dbChannelPreferences(DBActions.GENERAL.FIND)
+  }
+
+  static upsert(channelPreference) {
+    return window.ftElectron.dbChannelPreferences(DBActions.GENERAL.UPSERT, channelPreference)
+  }
+
+  static delete(_id) {
+    return window.ftElectron.dbChannelPreferences(DBActions.GENERAL.DELETE, _id)
+  }
+
+  static deleteAll() {
+    return window.ftElectron.dbChannelPreferences(DBActions.GENERAL.DELETE_ALL)
+  }
+}
+
 export {
   Settings as settings,
   History as history,
@@ -216,4 +234,5 @@ export {
   Playlists as playlists,
   SearchHistory as searchHistory,
   SubscriptionCache as subscriptionCache,
+  ChannelPreferences as channelPreferences,
 }
